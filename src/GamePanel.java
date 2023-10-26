@@ -1,47 +1,89 @@
-import java.awt.Color;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.security.Key;
 
 import javax.swing.JPanel;
 import javax.swing.plaf.DimensionUIResource;
 
-public class GamePanel extends JPanel {
-    
-    // membuat pengaturan ukuran layar, game retro memiliki ukuran default yaitu 16x16
-    // untuk ukuran objeknya seperti player, ubin (tile), monster dan lainnya
-    // jadi buat ukuran aktualnya
-    final int ACTUAL_SIZE = 16;
+public class GamePanel extends JPanel implements Runnable {
 
-    // nah karena layar sekarang memiliki resolusi yang besar sedangkan konsol game jadul memiliki resolusi
-    // rendah, maka perlu adanya scaling (perpesar ukuran)
-    final int SCALE = 3; // nilai scaling menyesuaikan
+    private Thread gameThread;
+    private final KeyHandler keyHandler;
 
-    // membuat ukuran tile dengan mengalikan ACTUAL_SIZE dan SCALE
-    // ini yang akan menjadi ukuran objeknya, karena resolusinya besar makanya dikali dengan scale
-    final int ORIGINAL_TILE_SIZE = ACTUAL_SIZE * SCALE;
+    private final int ACTUAL_SIZE = 16;
+    private final int SCALE = 3;
 
-    // membuat rasio layar, di sini menggunakan 4 : 3
-    // atau 16x12 (masing-masing dibagi 4)
-    // 6:4 = 4, 12:4 = 3 -> 4:3
-    final int MAX_COLUMN = 16; // untuk lebarnya
-    final int MAX_ROW = 12; // untuk tingginya
+    private final int OBJECT_SIZE = ACTUAL_SIZE * SCALE;
+    private final int MAX_COLUMN = 16;
+    private final int MAX_ROW = 12;
 
-    // menyeting ukuran lebar dan tinggi layar dengan mengalikan MAX_COLUMN / MAX_ROW dengan ORIGINAL_TILE_SIZE
-    final int SCREEN_WIDTH = ORIGINAL_TILE_SIZE * MAX_COLUMN; // 48 x 16 = 768 pixel
-    final int SCREEN_HEIGHT = ORIGINAL_TILE_SIZE * MAX_ROW; // 48 * 12 = 576 pixel
+    final int SCREEN_WIDTH = OBJECT_SIZE * MAX_COLUMN;
+    final int SCREEN_HEIGHT = OBJECT_SIZE * MAX_ROW;
 
-    // membuat constructor JPanel
+    private int DEFAULT_PLAYER_POSITION_X = 50;
+    private int DEFAULT_PLAYER_POSITION_Y = 50;
+
+    private final int FPS = 60;
+    private final int PLAYER_SPEED = 5;
+
     public GamePanel() {
-
-        // buat objek DimensionUIResource guna membuat ukuran layar game
         DimensionUIResource dimension = new DimensionUIResource(SCREEN_WIDTH, SCREEN_HEIGHT);
-        
-        // set ukuran ke preferredSize, ini biar fit dengan JFrame
+        keyHandler = new KeyHandler();
+
         setPreferredSize(dimension);
-
-        // set background menjadi warna putih (opsional)
         setBackground(Color.WHITE);
-
-        // setDoubleBuffered ke true agar meningkatkan kecepatan render
-        // menghindari efek flicker (berkedip) saat elemen berubah
         setDoubleBuffered(true);
+        startGameThread();
+
+        addKeyListener(keyHandler);
+        setFocusable(true);
+    }
+
+    @Override
+    public void run() {
+
+        int interval = 1_000_000_000 / FPS;
+        double delta = 0;
+        long lastTime = System.nanoTime();
+        long currentTime;
+
+        while (gameThread != null) {
+
+            currentTime = System.nanoTime();
+            delta += (double) (currentTime - lastTime) / interval;
+            lastTime = currentTime;
+
+            if (delta >= 1) {
+                update();
+                repaint();
+                delta--;
+            }
+        }
+    }
+
+    protected void startGameThread() {
+        gameThread = new Thread(this);
+        gameThread.start();
+    }
+
+    public void update() {
+        if (keyHandler.isUp()) {
+            DEFAULT_PLAYER_POSITION_Y -= PLAYER_SPEED;
+        } else if (keyHandler.isRight()) {
+            DEFAULT_PLAYER_POSITION_X += PLAYER_SPEED;
+        } else if (keyHandler.isBottom()) {
+            DEFAULT_PLAYER_POSITION_Y += PLAYER_SPEED;
+        } else if (keyHandler.isLeft()) {
+            DEFAULT_PLAYER_POSITION_X -= PLAYER_SPEED;
+        }
+    }
+
+    public void paintComponent(Graphics graphics) {
+        super.paintComponent(graphics);
+        Graphics2D graphics2D = (Graphics2D) graphics;
+
+        graphics2D.setColor(Color.BLACK);
+        graphics2D.fillRect(DEFAULT_PLAYER_POSITION_X, DEFAULT_PLAYER_POSITION_Y, OBJECT_SIZE, OBJECT_SIZE);
+        graphics2D.dispose();
     }
 }
