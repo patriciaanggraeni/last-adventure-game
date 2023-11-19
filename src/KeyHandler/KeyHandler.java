@@ -1,9 +1,11 @@
+package KeyHandler;
+
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
 public class KeyHandler implements KeyListener {
 
-    private boolean up, right, bottom, left = false;
+    private boolean up = false, right = false, bottom = false, left = false;
     private int keyboardCode;
 
     @Override
